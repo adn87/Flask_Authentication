@@ -44,26 +44,42 @@ def register():
         )
         db.session.add(new_user)
         db.session.commit()
-        return render_template("secrets.html", name=request.form.get('name'))
+
+        login_user(new_user)
+        return redirect(url_for("secrets"))
     return render_template("register.html")
 
 
-@app.route('/login')
+@app.route('/login', methods=["Get", "POST"])
 def login():
+    if request.method == "POST":
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        result = db.session.execute(db.select(User).where(User.email == email))
+        user = result.scalar()
+
+        if check_password_hash(User.password, password):
+            login_user(user)
+            return redirect(url_for('secrets'))
     return render_template("login.html")
 
 
 @app.route('/secrets')
+@login_required
 def secrets():
-    return render_template("secrets.html")
+    print(current_user.name)
+    return render_template("secrets.html", name=current_user.name)
 
 
 @app.route('/logout')
 def logout():
-    pass
+    logout_user()
+    return redirect(url_for('home'))
 
 
 @app.route('/download')
+@login_required
 def download():
     return send_from_directory('static', path='files/cheat_sheet.pdf')
 
